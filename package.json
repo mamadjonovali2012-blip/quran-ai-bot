@@ -1,0 +1,27 @@
+{
+  "name": "quran-ai-bot",
+  "version": "1.0.0",
+  "description": "Telegram-бот QuranAI: чтение Корана, поиск по тексту, тафсир, аудио, закладки и AI-помощник для изучения ислама",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "keywords": [
+    "telegram",
+    "bot",
+    "quran",
+    "islam",
+    "ai",
+    "tafsir"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "axios": "^1.7.7",
+    "dotenv": "^16.4.5",
+    "telegraf": "^4.16.3"
+  }
+}
