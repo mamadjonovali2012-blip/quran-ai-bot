@@ -1,7 +1,6 @@
 const { Telegraf, Scenes, session } = require('telegraf');
 const config = require('./config');
 const quranApi = require('./services/quranApi');
-const aiService = require('./services/aiService');
 const audioService = require('./services/audioService');
 const store = require('./services/store');
 const { SURAHS } = require('./constants/surahs');
@@ -34,10 +33,10 @@ bot.start(async (ctx) => {
   const userId = ctx.from.id;
   const lang = store.getLang(userId);
   const welcome = lang === 'arabic'
-    ? `بسم الله الرحمن الرحيم\n\nمرحباً بك في QuranAI 🤖📖\n\nاستخدم الأزرار للتنقل أو أرسل /ai لطرح سؤال عن الإسلام.`
+    ? `بسم الله الرحمن الرحيم\n\nمرحباً بك في QuranAI 🤖📖\n\nاستخدم الأزرار للتنقل أو أرسل /quran لقراءة القرآن.`
     : lang === 'english'
-      ? `بسم الله الرحمن الرحيم\n\nWelcome to QuranAI 🤖📖\n\nUse the buttons to navigate or send /ai to ask about Islam.`
-      : `بسم الله الرحمن الرحيم\n\nДобро пожаловать в QuranAI 🤖📖\n\nИспользуйте кнопки для навигации или отправьте /ai чтобы задать вопрос об исламе.`;
+      ? `بسم الله الرحمن الرحيم\n\nWelcome to QuranAI 🤖📖\n\nUse the buttons to navigate or send /quran to read the Quran.`
+      : `بسم الله الرحمن الرحيم\n\nДобро пожаловать в QuranAI 🤖📖\n\nИспользуйте кнопки для навигации или отправьте /quran чтобы читать Коран.`;
 
   await ctx.reply(welcome, mainMenu(userId));
 });
@@ -45,10 +44,10 @@ bot.start(async (ctx) => {
 bot.help(async (ctx) => {
   const lang = store.getLang(ctx.from.id);
   const text = lang === 'arabic'
-    ? 'الأوامر المتاحة:\n/quran - قراءة القرآن\n/search <نص> - بحث في القرآن\n/ai <سؤال> - سؤال AI\n/audio <السورة> <الآية> - استماع\n/bookmarks - العلامات\n/language - تغيير اللغة\n/settings - الإعدادات'
+    ? 'الأوامر المتاحة:\n/quran - قراءة القرآن\n/search <نص> - بحث في القرآن\n/audio <السورة> <الآية> - استماع\n/bookmarks - العلامات\n/language - تغيير اللغة\n/settings - الإعدادات'
     : lang === 'english'
-      ? 'Commands:\n/quran - Read the Quran\n/search <text> - Search the Quran\n/ai <question> - Ask AI\n/audio <surah> <ayah> - Listen\n/bookmarks - Bookmarks\n/language - Change language\n/settings - Settings'
-      : 'Команды:\n/quran — Читать Коран\n/search <текст> — Поиск по Корану\n/ai <вопрос> — Спросить AI\n/audio <сура> <аят> — Слушать аудио\n/bookmarks — Закладки\n/language — Сменить язык\n/settings — Настройки';
+      ? 'Commands:\n/quran - Read the Quran\n/search <text> - Search the Quran\n/audio <surah> <ayah> - Listen\n/bookmarks - Bookmarks\n/language - Change language\n/settings - Settings'
+      : 'Команды:\n/quran — Читать Коран\n/search <текст> — Поиск по Корану\n/audio <сура> <аят> — Слушать аудио\n/bookmarks — Закладки\n/language — Сменить язык\n/settings — Настройки';
 
   await ctx.reply(text);
 });
@@ -142,22 +141,6 @@ bot.command('search', async (ctx) => {
   }
 });
 
-bot.command('ai', async (ctx) => {
-  const userId = ctx.from.id;
-  const lang = store.getLang(userId);
-  const question = ctx.message.text.replace(/^\/ai\s*/i, '').trim();
-
-  if (!question) {
-    const msg = lang === 'arabic' ? '🤖 أرسل: /ai سؤالك' : lang === 'english' ? '🤖 Send: /ai <your question>' : '🤖 Отправьте: /ai <ваш вопрос>';
-    await ctx.reply(msg);
-    return;
-  }
-
-  await ctx.reply(lang === 'arabic' ? '🤖 جارٍ التفكير...' : lang === 'english' ? '🤖 Thinking...' : '🤖 Думаю...');
-  const answer = await aiService.askAI(question, lang);
-  await ctx.reply(answer);
-});
-
 bot.command('audio', async (ctx) => {
   const userId = ctx.from.id;
   const lang = store.getLang(userId);
@@ -215,16 +198,6 @@ bot.hears(/🔍/, async (ctx) => {
     : lang === 'english'
       ? '🔍 Send /search followed by your query (e.g. /search mercy)'
       : '🔍 Отправьте /search и текст для поиска (например: /search милость)';
-  await ctx.reply(msg);
-});
-
-bot.hears(/🤖/, async (ctx) => {
-  const lang = store.getLang(ctx.from.id);
-  const msg = lang === 'arabic'
-    ? '🤖 أرسل /ai ثم سؤالك (مثلاً: /ai ما هي أركان الإسلام؟)'
-    : lang === 'english'
-      ? '🤖 Send /ai followed by your question (e.g. /ai What are the pillars of Islam?)'
-      : '🤖 Отправьте /ai и ваш вопрос (например: /ai Каковы столпы Ислама?)';
   await ctx.reply(msg);
 });
 
@@ -482,8 +455,24 @@ bot.action('main_menu', async (ctx) => {
   await ctx.reply(msg, mainMenu(userId));
 });
 
+const PORT = process.env.PORT || 3000;
+const http = require('http');
+
+const healthServer = http.createServer((req, res) => {
+  if (req.url === '/') {
+    res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('QuranAI bot is running');
+  } else {
+    res.writeHead(404);
+    res.end('Not found');
+  }
+});
+
 bot.launch().then(() => {
   console.log('QuranAI бот запущен! 🤖📖');
+  healthServer.listen(PORT, () => {
+    console.log(`Health server listening on :${PORT}`);
+  });
 });
 
 process.once('SIGINT', () => bot.stop('SIGINT'));

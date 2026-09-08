@@ -7,15 +7,14 @@ const { getLang } = require('../services/store');
 function mainMenu(userId) {
   const lang = getLang(userId);
   const labels = {
-    russian: ['📖 Читать Коран', '🔍 Поиск', '🤖 AI-помощник', '🔊 Аудио', '📑 Закладки'],
-    english: ['📖 Read Quran', '🔍 Search', '🤖 AI Assistant', '🔊 Audio', '📑 Bookmarks'],
-    arabic: ['📖 اقرأ القرآن', '🔍 بحث', '🤖 المساعد الذكي', '🔊 صوت', '📑 العلامات'],
+    russian: ['📖 Читать Коран', '🔍 Поиск', '🔊 Аудио', '📑 Закладки'],
+    english: ['📖 Read Quran', '🔍 Search', '🔊 Audio', '📑 Bookmarks'],
+    arabic: ['📖 اقرأ القرآن', '🔍 بحث', '🔊 صوت', '📑 العلامات'],
   };
   const btn = labels[lang] || labels.russian;
   return Markup.keyboard([
     [btn[0], btn[1]],
     [btn[2], btn[3]],
-    [btn[4]],
   ]).resize();
 }
 
