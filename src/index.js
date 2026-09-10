@@ -468,11 +468,14 @@ const healthServer = http.createServer((req, res) => {
   }
 });
 
+healthServer.listen(PORT, '0.0.0.0', () => {
+  console.log(`Health server listening on 0.0.0.0:${PORT}`);
+});
+
 bot.launch().then(() => {
   console.log('QuranAI бот запущен! 🤖📖');
-  healthServer.listen(PORT, () => {
-    console.log(`Health server listening on :${PORT}`);
-  });
+}).catch((err) => {
+  console.error('Bot launch failed:', err.message);
 });
 
 process.once('SIGINT', () => bot.stop('SIGINT'));
