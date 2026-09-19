@@ -1,10 +1,12 @@
 require('dotenv').config();
 
+const webhookEnabled = process.env.WEBHOOK === 'true' && !!process.env.WEBHOOK_URL;
+
 const config = {
   botToken: process.env.BOT_TOKEN,
   quranApiBase: 'https://api.alquran.cloud/v1',
   webhook: {
-    enabled: process.env.WEBHOOK === 'true',
+    enabled: webhookEnabled,
     url: process.env.WEBHOOK_URL,
     path: process.env.WEBHOOK_PATH || '/webhook',
     secret: process.env.WEBHOOK_SECRET,
@@ -18,9 +20,8 @@ if (!config.botToken) {
   process.exit(1);
 }
 
-if (config.webhook.enabled && !config.webhook.url) {
-  console.error('Ошибка: WEBHOOK=true, но не задан WEBHOOK_URL.');
-  process.exit(1);
+if (process.env.WEBHOOK === 'true' && !process.env.WEBHOOK_URL) {
+  console.warn('Внимание: WEBHOOK=true, но WEBHOOK_URL не задан. Бот запустится в режиме polling.');
 }
 
 module.exports = config;
