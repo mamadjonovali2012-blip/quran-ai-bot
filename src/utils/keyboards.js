@@ -1,112 +1,147 @@
 const { Markup } = require('telegraf');
 const { SURAHS } = require('../constants/surahs');
-const { RECITERS } = require('../services/audioService');
-const { TRANSLATIONS } = require('../services/translationService');
-const { getLang } = require('../services/store');
 
-function mainMenu(userId) {
-  const lang = getLang(userId);
-  const labels = {
-    russian: ['📖 Читать Коран', '🔍 Поиск', '🔊 Аудио', '📑 Закладки'],
-    english: ['📖 Read Quran', '🔍 Search', '🔊 Audio', '📑 Bookmarks'],
-    arabic: ['📖 اقرأ القرآن', '🔍 بحث', '🔊 صوت', '📑 العلامات'],
-  };
-  const btn = labels[lang] || labels.russian;
-  return Markup.keyboard([
-    [btn[0], btn[1]],
-    [btn[2], btn[3]],
-  ]).resize();
+function t(lang, ru, en, ar) {
+  return lang === 'arabic' ? ar : lang === 'english' ? en : ru;
 }
 
-function languageKeyboard() {
+function mainMenu(lang) {
+  const labels = [
+    [t(lang, '📖 Коран', '📖 Quran', '📖 القرآن')],
+    [t(lang, '🔍 Поиск', '🔍 Search', '🔍 بحث'), t(lang, '🔊 Аудио', '🔊 Audio', '🔊 صوت')],
+    [t(lang, '📑 Закладки', '📑 Bookmarks', '📑 العلامات'), t(lang, '⚙️ Язык', '⚙️ Language', '⚙️ اللغة')],
+  ];
+  return Markup.keyboard(labels).resize();
+}
+
+function inMenu(lang) {
   return Markup.inlineKeyboard([
-    Markup.button.callback('🇷🇺 Русский', 'lang_russian'),
-    Markup.button.callback('🇬🇧 English', 'lang_english'),
-    Markup.button.callback('🇸🇦 العربية', 'lang_arabic'),
+    Markup.button.callback(t(lang, '🏠 Меню', '🏠 Menu', '🏠 القائمة'), 'main_menu'),
   ]);
 }
 
-function surahListKeyboard(page = 0, userId) {
-  const lang = getLang(userId);
-  const perPage = 10;
+function navRow(lang, ...btns) {
+  return btns;
+}
+
+function backBtn(lang, action) {
+  return Markup.button.callback(t(lang, '⬅️ Назад', '⬅️ Back', '⬅️ رجوع'), action);
+}
+
+function surahList(page = 0, lang = 'russian') {
+  const perPage = 8;
   const total = SURAHS.length;
   const pages = Math.ceil(total / perPage);
   const start = page * perPage;
   const end = Math.min(start + perPage, total);
-  const buttons = [];
+  const rows = [];
 
   for (let i = start; i < end; i++) {
     const s = SURAHS[i];
     const name = lang === 'arabic' ? s.nameArabic : lang === 'english' ? s.nameEnglish : s.nameRussian;
-    buttons.push([Markup.button.callback(`${s.id}. ${name}`, `surah_${s.id}`)]);
+    rows.push([Markup.button.callback(`${s.id}. ${name}`, `surah_${s.id}`)]);
   }
 
   const nav = [];
   if (page > 0) nav.push(Markup.button.callback('⬅️', `surahpage_${page - 1}`));
-  const backLabel = { russian: '🏠 Главная', english: '🏠 Home', arabic: '🏠 الرئيسية' };
-  nav.push(Markup.button.callback(backLabel[lang] || backLabel.russian, 'main_menu'));
+  nav.push(backBtn(lang, 'main_menu'));
   if (page < pages - 1) nav.push(Markup.button.callback('➡️', `surahpage_${page + 1}`));
-  buttons.push(nav);
+  rows.push(nav);
 
-  return Markup.inlineKeyboard(buttons);
+  return Markup.inlineKeyboard(rows);
 }
 
-function ayahActionsKeyboard(surahId, ayahNumber, userId) {
-  const lang = getLang(userId);
-  const texts = {
-    russian: { tafsir: '📖 Тафсир', audio: '🔊 Аудио', back: '⬅️ К суре', home: '🏠' },
-    english: { tafsir: '📖 Tafsir', audio: '🔊 Audio', back: '⬅️ To surah', home: '🏠' },
-    arabic: { tafsir: '📖 التفسير', audio: '🔊 صوت', back: '⬅️ للسورة', home: '🏠' },
-  };
-  const t = texts[lang] || texts.russian;
+function juzList(lang = 'russian') {
+  const rows = [];
+  for (let j = 1; j <= 30; j += 3) {
+    const row = [];
+    for (let k = 0; k < 3 && j + k <= 30; k++) {
+      row.push(Markup.button.callback(`${j + k}`, `juz_${j + k}`));
+    }
+    rows.push(row);
+  }
+  rows.push([backBtn(lang, 'main_menu')]);
+  return Markup.inlineKeyboard(rows);
+}
+
+function quranNav(lang) {
   return Markup.inlineKeyboard([
-    [
-      Markup.button.callback(t.tafsir, `tafsir_${surahId}_${ayahNumber}`),
-      Markup.button.callback(t.audio, `audioayah_${surahId}_${ayahNumber}`),
-    ],
-    [
-      Markup.button.callback(t.back, `surah_${surahId}`),
-      Markup.button.callback(t.home, 'main_menu'),
-    ],
+    [Markup.button.callback(t(lang, '📖 По сурам', '📖 By Surah', '📖 بالسور'), 'nav_surahs'),
+     Markup.button.callback(t(lang, '📖 По джузам', '📖 By Juz', '📖 بالأجزاء'), 'nav_juz')],
+    [Markup.button.callback(t(lang, '🎲 Случайный аят', '🎲 Random ayah', '🎲 آية عشوائية'), 'random_ayah'),
+     backBtn(lang, 'main_menu')],
   ]);
 }
 
-function translationKeyboard(surahId, ayahNumber, userId) {
-  const lang = getLang(userId);
-  const buttons = TRANSLATIONS.map((tr) => {
-    const label = tr.label[lang] || tr.label.russian;
-    return Markup.button.callback(`${label}`, `translate_${tr.id}_${surahId}_${ayahNumber}`);
-  });
-  const backLabel = { russian: '⬅️ Назад', english: '⬅️ Back', arabic: '⬅️ رجوع' };
-  buttons.push(Markup.button.callback(backLabel[lang] || backLabel.russian, `ayah_${surahId}_${ayahNumber}`));
-  return Markup.inlineKeyboard(buttons.map((b) => [b]));
-}
-
-function reciterKeyboard(surahId, userId) {
-  const lang = getLang(userId);
-  const buttons = RECITERS.map((r) => {
-    return Markup.button.callback(
-      (r.name[lang] || r.name.russian),
-      `play_${r.id}_${surahId}`
-    );
-  });
-  const backLabel = { russian: '⬅️ К суре', english: '⬅️ To surah', arabic: '⬅️ للسورة' };
-  buttons.push(Markup.button.callback(backLabel[lang] || backLabel.russian, `surah_${surahId}`));
-  return Markup.inlineKeyboard(buttons.map((b) => [b]));
-}
-
-function settingsKeyboard(userId) {
-  const lang = getLang(userId);
-  const texts = {
-    russian: { lang: '🌐 Язык', back: '🏠 Главная' },
-    english: { lang: '🌐 Language', back: '🏠 Home' },
-    arabic: { lang: '🌐 اللغة', back: '🏠 الرئيسية' },
-  };
-  const t = texts[lang] || texts.russian;
+function surahActions(surahId, lang) {
+  const s = SURAHS.find((x) => x.id === surahId);
+  if (!s) return inMenu(lang);
   return Markup.inlineKeyboard([
-    [Markup.button.callback(t.lang, 'change_lang')],
-    [Markup.button.callback(t.back, 'main_menu')],
+    [Markup.button.callback(t(lang, '🔊 Слушать', '🔊 Listen', '🔊 استمع'), `audiosurah_${surahId}`),
+     Markup.button.callback(t(lang, '📖 Тафсир 1', '📖 Tafsir 1', '📖 تفسير 1'), `tafsir_s_${surahId}_1`)],
+    [backBtn(lang, `surahpage_0`)],
   ]);
 }
 
-module.exports = { mainMenu, languageKeyboard, surahListKeyboard, ayahActionsKeyboard, translationKeyboard, reciterKeyboard, settingsKeyboard };
+function ayahActions(surahId, ayahNumber, userId, isBookmarked, lang) {
+  const row1 = [
+    Markup.button.callback(t(lang, '📖 Тафсир', '📖 Tafsir', '📖 تفسير'), `tafsir_${surahId}_${ayahNumber}`),
+    Markup.button.callback(t(lang, '🔊 Аудио', '🔊 Audio', '🔊 صوت'), `audioayah_${surahId}_${ayahNumber}`),
+  ];
+  const row2 = [
+    isBookmarked
+      ? Markup.button.callback(t(lang, '❌ Из закладок', '❌ Unbookmark', '❌ إزالة'), `unbookmark_${surahId}_${ayahNumber}`)
+      : Markup.button.callback(t(lang, '🔖 В закладки', '🔖 Bookmark', '🔖 حفظ'), `bookmark_${surahId}_${ayahNumber}`),
+    Markup.button.callback(t(lang, '🌐 Перевод', '🌐 Translation', '🌐 ترجمة'), `transmenu_${surahId}_${ayahNumber}`),
+  ];
+  const row3 = [
+    Markup.button.callback(t(lang, '◀️', '◀️', '◀️'), `prev_ayah_${surahId}_${ayahNumber}`),
+    Markup.button.callback(t(lang, '🏠', '🏠', '🏠'), 'main_menu'),
+    Markup.button.callback(t(lang, '▶️', '▶️', '▶️'), `next_ayah_${surahId}_${ayahNumber}`),
+  ];
+  return Markup.inlineKeyboard([row1, row2, row3]);
+}
+
+function translationMenu(surahId, ayahNumber, lang) {
+  const TRS = [
+    { id: 'ru.kuliev', ru: 'Кулиев', en: 'Kuliev', ar: 'كوليايف' },
+    { id: 'en.sahih', ru: 'Sahih Intl.', en: 'Sahih Intl.', ar: 'صحيح' },
+    { id: 'ar.alfazy', ru: 'Арабский', en: 'Arabic', ar: 'العربية' },
+    { id: 'en.pickthall', ru: 'Pickthall', en: 'Pickthall', ar: 'بيكثال' },
+    { id: 'en.transliteration', ru: 'Транслит', en: 'Transliteration', ar: 'الترجمة الصوتية' },
+  ];
+  const rows = TRS.map((tr) => {
+    const label = tr[lang] || tr.ru;
+    return [Markup.button.callback(label, `translate_${tr.id}_${surahId}_${ayahNumber}`)];
+  });
+  rows.push([backBtn(lang, `ayah_${surahId}_${ayahNumber}`)]);
+  return Markup.inlineKeyboard(rows);
+}
+
+function reciterPicker(surahId, ayahNumber, lang) {
+  const { RECITERS } = require('../services/audioService');
+  const rows = RECITERS.map((r) => {
+    const name = r.name[lang] || r.name.russian;
+    return [Markup.button.callback(name, `play_${r.id}_${surahId}_${ayahNumber}`)];
+  });
+  rows.push([backBtn(lang, `ayah_${surahId}_${ayahNumber}`)]);
+  return Markup.inlineKeyboard(rows);
+}
+
+function reciterPickerSurah(surahId, lang) {
+  const { RECITERS } = require('../services/audioService');
+  const rows = [];
+  for (let i = 0; i < RECITERS.length; i += 2) {
+    const row = [];
+    row.push(Markup.button.callback(RECITERS[i].name[lang] || RECITERS[i].name.russian, `playsurah_${RECITERS[i].id}_${surahId}`));
+    if (RECITERS[i + 1]) row.push(Markup.button.callback(RECITERS[i + 1].name[lang] || RECITERS[i + 1].name.russian, `playsurah_${RECITERS[i + 1].id}_${surahId}`));
+    rows.push(row);
+  }
+  rows.push([backBtn(lang, `surah_${surahId}`)]);
+  return Markup.inlineKeyboard(rows);
+}
+
+module.exports = {
+  mainMenu, inMenu, surahList, juzList, quranNav, surahActions,
+  ayahActions, translationMenu, reciterPicker, reciterPickerSurah, t,
+};

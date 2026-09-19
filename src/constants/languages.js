@@ -1,7 +1,55 @@
 const LANGUAGES = {
-  russian: { code: 'russian', label: 'Русский', quranApi: 'ru.kuliev' },
-  english: { code: 'english', label: 'English', quranApi: 'en.sahih' },
-  arabic: { code: 'arabic', label: 'العربية', quranApi: 'ar.alfazy' },
+  russian: {
+    code: 'russian',
+    label: 'Русский',
+    quranApi: 'ru.kuliev',
+    tafsir: 'ru.muntahab',
+  },
+  english: {
+    code: 'english',
+    label: 'English',
+    quranApi: 'en.sahih',
+    tafsir: 'en.al-tafsir',
+  },
+  arabic: {
+    code: 'arabic',
+    label: 'العربية',
+    quranApi: 'ar.alfazy',
+    tafsir: 'ru.muntahab',
+  },
 };
 
-module.exports = { LANGUAGES };
+const JUIZ = [
+  { juz: 1, ayah: '1:1', name: 'آلم', nameRu: 'Алиф Лям Мим' },
+  { juz: 2, ayah: '2:142', name: 'سَيَقُولُ', nameRu: 'Скажут невежды' },
+  { juz: 3, ayah: '2:253', name: 'تِلْكَ الرُّسُلُ', nameRu: 'Эти посланники' },
+  { juz: 4, ayah: '3:93', name: 'لَن تَنَالُوا', nameRu: 'Вы не обретёте' },
+  { juz: 5, ayah: '4:24', name: 'وَالْمُحْصَنَاتُ', nameRu: 'И целомудренные' },
+  { juz: 6, ayah: '4:148', name: 'لَا يُحِبُّ اللَّهُ', nameRu: 'Не любит Аллах' },
+  { juz: 7, ayah: '5:82', name: 'وَإِذَا سَمِعُوا', nameRu: 'Когда они слышат' },
+  { juz: 8, ayah: '6:111', name: 'وَلَوْ أَنَّنَا', nameRu: 'И если бы Мы' },
+  { juz: 9, ayah: '7:88', name: 'قَالَ الْمَلَأُ', nameRu: 'Сказала знать' },
+  { juz: 10, ayah: '8:41', name: 'وَاعْلَمُوا', nameRu: 'И знайте' },
+  { juz: 11, ayah: '9:93', name: 'يَعْتَذِرُونَ', nameRu: 'Они извиняются' },
+  { juz: 12, ayah: '11:6', name: 'وَمَا مِن دَابَّةٍ', nameRu: 'Нет ни одного живого существа' },
+  { juz: 13, ayah: '12:53', name: 'وَمَا أُبَرِّئُ', nameRu: 'Я не оправдываю' },
+  { juz: 14, ayah: '15:1', name: 'الر', nameRu: 'Алиф Лям Ра' },
+  { juz: 15, ayah: '17:1', name: 'سُبْحَانَ', nameRu: 'Пречист Тот' },
+  { juz: 16, ayah: '18:75', name: 'قَالَ أَلَمْ', nameRu: 'Он сказал: «Разве я не говорил»' },
+  { juz: 17, ayah: '21:1', name: 'اقْتَرَبَ', nameRu: 'Приблизился' },
+  { juz: 18, ayah: '23:1', name: 'قَدْ أَفْلَحَ', nameRu: 'Преуспели' },
+  { juz: 19, ayah: '25:21', name: 'وَقَالَ الَّذِينَ', nameRu: 'И сказали те' },
+  { juz: 20, ayah: '27:56', name: 'أَمَّنْ خَلَقَ', nameRu: 'Тот ли, кто сотворил' },
+  { juz: 21, ayah: '29:46', name: 'وَلَا تُجَادِلُوا', nameRu: 'Не препирайтесь' },
+  { juz: 22, ayah: '33:31', name: 'وَمَن يَقْنُتْ', nameRu: 'А кто будет покорен' },
+  { juz: 23, ayah: '36:28', name: 'وَإِذَا قِيلَ', nameRu: 'И когда говорят' },
+  { juz: 24, ayah: '39:32', name: 'فَمَنْ أَظْلَمُ', nameRu: 'Кто же несправедливее' },
+  { juz: 25, ayah: '41:47', name: 'إِلَيْهِ يُرَدُّ', nameRu: 'К Нему возвращается' },
+  { juz: 26, ayah: '46:1', name: 'حم', nameRu: 'Ха Мим' },
+  { juz: 27, ayah: '51:31', name: 'قَالَ فَمَا', nameRu: 'Он сказал: «Каково же' },
+  { juz: 28, ayah: '58:1', name: 'قَدْ سَمِعَ', nameRu: 'Услышал Аллах' },
+  { juz: 29, ayah: '67:1', name: 'تَبَارَكَ', nameRu: 'Благословен' },
+  { juz: 30, ayah: '78:1', name: 'عَمَّ', nameRu: 'О чём они расспрашивают' },
+];
+
+module.exports = { LANGUAGES, JUIZ };

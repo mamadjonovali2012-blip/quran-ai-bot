@@ -10,3 +10,9 @@ services:
     envVars:
       - key: BOT_TOKEN
         sync: false
+      - key: WEBHOOK
+        value: "true"
+      - key: WEBHOOK_URL
+        sync: false
+      - key: WEBHOOK_SECRET
+        sync: false

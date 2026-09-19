@@ -1,40 +1,49 @@
-const axios = require('axios');
 const config = require('../config');
 
-const client = axios.create({
-  baseURL: config.quranApiBase,
-  timeout: 20000,
-});
+const BASE = config.quranApiBase;
+const cache = new Map();
+const CACHE_TTL = 3600000;
 
-async function getSurah(surahId, edition) {
-  const { data } = await client.get(`/surah/${surahId}/${edition}`);
-  return data.data;
+async function fetchJson(url) {
+  if (cache.has(url)) {
+    const entry = cache.get(url);
+    if (Date.now() - entry.ts < CACHE_TTL) return entry.data;
+    cache.delete(url);
+  }
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Quran API error: ${res.status} for ${url}`);
+  const result = await res.json();
+  if (!result.data) throw new Error(`Quran API: no data for ${url}`);
+  cache.set(url, { data: result.data, ts: Date.now() });
+  return result.data;
 }
 
-async function getAyah(surahId, ayahNumber, edition) {
-  const { data } = await client.get(`/ayah/${surahId}:${ayahNumber}/${edition}`);
-  return data.data;
+function getSurah(surahId, edition) {
+  return fetchJson(`${BASE}/surah/${surahId}/${edition}`);
 }
 
-async function getPage(page, edition) {
-  const { data } = await client.get(`/page/${page}/${edition}`);
-  return data.data;
+function getAyah(surahId, ayahNumber, edition) {
+  return fetchJson(`${BASE}/ayah/${surahId}:${ayahNumber}/${edition}`);
 }
 
-async function searchQuran(query, language) {
-  const { data } = await client.get(`/search/${encodeURIComponent(query)}/${language}`);
-  return data.data;
+function getPage(page, edition) {
+  return fetchJson(`${BASE}/page/${page}/${edition}`);
 }
 
-const TAFSIR_EDITIONS = {
-  russian: 'ru.muntahab',
-  english: 'en.al-tafsir',
-};
-
-async function getTafsir(surahId, ayahNumber, language) {
-  const edition = TAFSIR_EDITIONS[language] || 'ru.muntahab';
-  const { data } = await client.get(`/tafsir/${edition}/${surahId}:${ayahNumber}`);
-  return data.data;
+function searchQuran(query, language) {
+  return fetchJson(`${BASE}/search/${encodeURIComponent(query)}/${language}`);
 }
 
-module.exports = { getSurah, getAyah, getPage, searchQuran, getTafsir };
+function getTafsir(edition, surahId, ayahNumber) {
+  return fetchJson(`${BASE}/tafsir/${edition}/${surahId}:${ayahNumber}`);
+}
+
+function getRandomAyah() {
+  const surahId = Math.floor(Math.random() * 114) + 1;
+  const { SURAHS } = require('../constants/surahs');
+  const s = SURAHS.find((x) => x.id === surahId);
+  const ayahNumber = Math.floor(Math.random() * s.ayats) + 1;
+  return { surahId, ayahNumber };
+}
+
+module.exports = { getSurah, getAyah, getPage, searchQuran, getTafsir, getRandomAyah };

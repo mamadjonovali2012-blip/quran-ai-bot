@@ -2,75 +2,91 @@ const fs = require('fs');
 const path = require('path');
 
 const DATA_DIR = path.join(__dirname, '..', '..', 'data');
+const TTL = 1000 * 60 * 60 * 24 * 30;
 
 function ensureDir() {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 }
 
-function getUserFile(userId) {
+function userFile(userId) {
   ensureDir();
   return path.join(DATA_DIR, `user_${userId}.json`);
 }
 
-function getUserData(userId) {
-  const file = getUserFile(userId);
-  if (!fs.existsSync(file)) return { lang: 'russian', bookmarks: [], history: [], settings: {} };
+function defaultData() {
+  return { lang: 'russian', bookmarks: [], history: [], lastRead: null, settings: {} };
+}
+
+function getData(userId) {
+  const file = userFile(userId);
+  if (!fs.existsSync(file)) return defaultData();
   try {
-    return JSON.parse(fs.readFileSync(file, 'utf8'));
+    return { ...defaultData(), ...JSON.parse(fs.readFileSync(file, 'utf8')) };
   } catch {
-    return { lang: 'russian', bookmarks: [], history: [], settings: {} };
+    return defaultData();
   }
 }
 
-function saveUserData(userId, data) {
+function save(userId, data) {
   ensureDir();
-  fs.writeFileSync(getUserFile(userId), JSON.stringify(data, null, 2), 'utf8');
+  fs.writeFileSync(userFile(userId), JSON.stringify(data, null, 2), 'utf8');
 }
 
 function getLang(userId) {
-  return getUserData(userId).lang || 'russian';
+  return getData(userId).lang || 'russian';
 }
 
 function setLang(userId, lang) {
-  const data = getUserData(userId);
-  data.lang = lang;
-  saveUserData(userId, data);
+  const d = getData(userId);
+  d.lang = lang;
+  save(userId, d);
 }
 
-function addBookmark(userId, ref) {
-  const data = getUserData(userId);
-  if (!data.bookmarks) data.bookmarks = [];
-  const exists = data.bookmarks.some((b) => b.ref === ref.ref);
-  if (!exists) {
-    data.bookmarks.unshift(ref);
-    if (data.bookmarks.length > 100) data.bookmarks.pop();
+function addBookmark(userId, book) {
+  const d = getData(userId);
+  if (!d.bookmarks) d.bookmarks = [];
+  if (!d.bookmarks.some((b) => b.ref === book.ref)) {
+    d.bookmarks.unshift({ ...book, ts: Date.now() });
+    d.bookmarks = d.bookmarks.slice(0, 100);
   }
-  saveUserData(userId, data);
-  return !exists;
+  save(userId, d);
 }
 
 function removeBookmark(userId, ref) {
-  const data = getUserData(userId);
-  if (!data.bookmarks) data.bookmarks = [];
-  data.bookmarks = data.bookmarks.filter((b) => b.ref !== ref.ref);
-  saveUserData(userId, data);
+  const d = getData(userId);
+  if (!d.bookmarks) d.bookmarks = [];
+  d.bookmarks = d.bookmarks.filter((b) => b.ref !== ref);
+  save(userId, d);
+}
+
+function isBookmarked(userId, ref) {
+  const d = getData(userId);
+  return (d.bookmarks || []).some((b) => b.ref === ref);
 }
 
 function getBookmarks(userId) {
-  return (getUserData(userId).bookmarks || []).slice(0, 20);
+  return getData(userId).bookmarks || [];
 }
 
-function addHistory(userId, ref) {
-  const data = getUserData(userId);
-  if (!data.history) data.history = [];
-  data.history = data.history.filter((h) => h.ref !== ref.ref);
-  data.history.unshift(ref);
-  if (data.history.length > 20) data.history.pop();
-  saveUserData(userId, data);
+function markRead(userId, ref) {
+  const d = getData(userId);
+  if (!d.history) d.history = [];
+  d.history = d.history.filter((h) => h.ref !== ref);
+  d.history.unshift({ ref, ts: Date.now() });
+  d.history = d.history.slice(0, 50);
+  d.lastRead = { ref, ts: Date.now() };
+  save(userId, d);
 }
 
 function getHistory(userId) {
-  return getUserData(userId).history || [];
+  return getData(userId).history || [];
 }
 
-module.exports = { getUserData, getLang, setLang, addBookmark, removeBookmark, getBookmarks, addHistory, getHistory };
+function getLastRead(userId) {
+  return getData(userId).lastRead || null;
+}
+
+module.exports = {
+  getLang, setLang, addBookmark, removeBookmark, isBookmarked,
+  getBookmarks, markRead, getHistory, getLastRead, getData, save,
+};
