@@ -171,23 +171,23 @@ bot.on('inline_query', async (ctx) => {
 
 /** ──────── CALLBACK QUERIES ──────── */
 
-bot.action(/nav_surahs/, async (ctx) => {
+bot.action(/^nav_surahs/, async (ctx) => {
   await ctx.answerCbQuery();
   await ctx.editMessageText(t(ctx, '📖 Выберите суру:', '📖 Choose a surah:', '📖 اختر سورة:'), kbd.surahList(0, lang(ctx)));
 });
 
-bot.action(/nav_juz/, async (ctx) => {
+bot.action(/^nav_juz/, async (ctx) => {
   await ctx.answerCbQuery();
   await ctx.editMessageText(t(ctx, '📖 Выберите джуз (1-30):', '📖 Choose juz (1-30):', '📖 اختر الجزء (1-30):'), kbd.juzList(lang(ctx)));
 });
 
-bot.action(/surahpage_(\d+)/, async (ctx) => {
+bot.action(/^surahpage_(\d+)/, async (ctx) => {
   const page = parseInt(ctx.match[1]);
   await ctx.answerCbQuery();
   await ctx.editMessageReplyMarkup(kbd.surahList(page, lang(ctx)).reply_markup);
 });
 
-bot.action(/surah_(\d+)/, async (ctx) => {
+bot.action(/^surah_(\d+)/, async (ctx) => {
   const surahId = parseInt(ctx.match[1]);
   const s = h.findSurah(surahId);
   if (!s) return;
@@ -195,7 +195,7 @@ bot.action(/surah_(\d+)/, async (ctx) => {
   await sendSurah(ctx, surahId);
 });
 
-bot.action(/juz_(\d+)/, async (ctx) => {
+bot.action(/^juz_(\d+)/, async (ctx) => {
   const juz = parseInt(ctx.match[1]);
   await ctx.answerCbQuery();
   const ju = JUIZ[juz - 1];
@@ -209,21 +209,21 @@ bot.action(/juz_(\d+)/, async (ctx) => {
   await sendSurah(ctx, startSurah, startAyah, Math.min(startAyah + 9, s.ayats));
 });
 
-bot.action(/surahpage_more_(\d+)_(\d+)/, async (ctx) => {
+bot.action(/^surahpage_more_(\d+)_(\d+)/, async (ctx) => {
   const surahId = parseInt(ctx.match[1]);
   const fromAyah = parseInt(ctx.match[2]);
   await ctx.answerCbQuery();
   await sendSurah(ctx, surahId, fromAyah, fromAyah + 9);
 });
 
-bot.action(/ayah_(\d+)_(\d+)/, async (ctx) => {
+bot.action(/^ayah_(\d+)_(\d+)/, async (ctx) => {
   const surahId = parseInt(ctx.match[1]);
   const ayahNumber = parseInt(ctx.match[2]);
   await ctx.answerCbQuery();
   await sendAyah(ctx, surahId, ayahNumber);
 });
 
-bot.action(/next_ayah_(\d+)_(\d+)/, async (ctx) => {
+bot.action(/^next_ayah_(\d+)_(\d+)/, async (ctx) => {
   const surahId = parseInt(ctx.match[1]);
   const ayahNumber = parseInt(ctx.match[2]);
   const s = h.findSurah(surahId);
@@ -236,7 +236,7 @@ bot.action(/next_ayah_(\d+)_(\d+)/, async (ctx) => {
   await sendAyah(ctx, surahId, ayahNumber + 1);
 });
 
-bot.action(/prev_ayah_(\d+)_(\d+)/, async (ctx) => {
+bot.action(/^prev_ayah_(\d+)_(\d+)/, async (ctx) => {
   const surahId = parseInt(ctx.match[1]);
   const ayahNumber = parseInt(ctx.match[2]);
   if (ayahNumber <= 1) {
@@ -247,21 +247,21 @@ bot.action(/prev_ayah_(\d+)_(\d+)/, async (ctx) => {
   await sendAyah(ctx, surahId, ayahNumber - 1);
 });
 
-bot.action(/tafsir_(\d+)_(\d+)/, async (ctx) => {
+bot.action(/^tafsir_(\d+)_(\d+)/, async (ctx) => {
   const surahId = parseInt(ctx.match[1]);
   const ayahNumber = parseInt(ctx.match[2]);
   await ctx.answerCbQuery(t(ctx, '📖 Загружаю тафсир...', '📖 Loading tafsir...', '📖 جارٍ تحميل التفسير...'));
   await sendTafsir(ctx, surahId, ayahNumber);
 });
 
-bot.action(/tafsir_s_(\d+)_(\d+)/, async (ctx) => {
+bot.action(/^tafsir_s_(\d+)_(\d+)/, async (ctx) => {
   const surahId = parseInt(ctx.match[1]);
   const ayahNumber = parseInt(ctx.match[2]);
   await ctx.answerCbQuery(t(ctx, '📖 Загружаю тафсир...', '📖 Loading tafsir...', '📖 جارٍ تحميل التفسير...'));
   await sendTafsir(ctx, surahId, ayahNumber);
 });
 
-bot.action(/audioayah_(\d+)_(\d+)/, async (ctx) => {
+bot.action(/^audioayah_(\d+)_(\d+)/, async (ctx) => {
   const surahId = parseInt(ctx.match[1]);
   const ayahNumber = parseInt(ctx.match[2]);
   await ctx.answerCbQuery();
@@ -276,7 +276,7 @@ bot.action(/audioayah_(\d+)_(\d+)/, async (ctx) => {
   }
 });
 
-bot.action(/audiosurah_(\d+)/, async (ctx) => {
+bot.action(/^audiosurah_(\d+)/, async (ctx) => {
   const surahId = parseInt(ctx.match[1]);
   const s = h.findSurah(surahId);
   await ctx.answerCbQuery();
@@ -284,7 +284,7 @@ bot.action(/audiosurah_(\d+)/, async (ctx) => {
   await ctx.reply(t(ctx, `Выберите чтеца для ${h.surahName(s, lang(ctx))}:`, `Choose reciter for ${h.surahName(s, lang(ctx))}:`, `اختر قارئاً لـ ${h.surahName(s, lang(ctx))}:`), kbd.reciterPickerSurah(surahId, lang(ctx)));
 });
 
-bot.action(/play_(\d+)_(\d+)_(\d+)/, async (ctx) => {
+bot.action(/^play_(\d+)_(\d+)_(\d+)/, async (ctx) => {
   const reciterId = parseInt(ctx.match[1]);
   const surahId = parseInt(ctx.match[2]);
   const ayahNumber = parseInt(ctx.match[3]);
@@ -300,7 +300,7 @@ bot.action(/play_(\d+)_(\d+)_(\d+)/, async (ctx) => {
   }
 });
 
-bot.action(/playsurah_(\d+)_(\d+)/, async (ctx) => {
+bot.action(/^playsurah_(\d+)_(\d+)/, async (ctx) => {
   const reciterId = parseInt(ctx.match[1]);
   const surahId = parseInt(ctx.match[2]);
   const s = h.findSurah(surahId);
@@ -317,7 +317,7 @@ bot.action(/playsurah_(\d+)_(\d+)/, async (ctx) => {
   }
 });
 
-bot.action(/bookmark_(\d+)_(\d+)/, async (ctx) => {
+bot.action(/^bookmark_(\d+)_(\d+)/, async (ctx) => {
   const userId = ctx.from.id;
   const surahId = parseInt(ctx.match[1]);
   const ayahNumber = parseInt(ctx.match[2]);
@@ -328,7 +328,7 @@ bot.action(/bookmark_(\d+)_(\d+)/, async (ctx) => {
   try { await ctx.editMessageReplyMarkup(newKbd.reply_markup); } catch { }
 });
 
-bot.action(/unbookmark_(\d+)_(\d+)/, async (ctx) => {
+bot.action(/^unbookmark_(\d+)_(\d+)/, async (ctx) => {
   const userId = ctx.from.id;
   const surahId = parseInt(ctx.match[1]);
   const ayahNumber = parseInt(ctx.match[2]);
@@ -339,14 +339,14 @@ bot.action(/unbookmark_(\d+)_(\d+)/, async (ctx) => {
   try { await ctx.editMessageReplyMarkup(newKbd.reply_markup); } catch { }
 });
 
-bot.action(/transmenu_(\d+)_(\d+)/, async (ctx) => {
+bot.action(/^transmenu_(\d+)_(\d+)/, async (ctx) => {
   const surahId = parseInt(ctx.match[1]);
   const ayahNumber = parseInt(ctx.match[2]);
   await ctx.answerCbQuery();
   await ctx.reply(t(ctx, '🌐 Выберите перевод:', '🌐 Choose translation:', '🌐 اختر الترجمة:'), kbd.translationMenu(surahId, ayahNumber, lang(ctx)));
 });
 
-bot.action(/translate_([\w.]+)_(\d+)_(\d+)/, async (ctx) => {
+bot.action(/^translate_([\w.]+)_(\d+)_(\d+)/, async (ctx) => {
   const edition = ctx.match[1];
   const surahId = parseInt(ctx.match[2]);
   const ayahNumber = parseInt(ctx.match[3]);
@@ -361,12 +361,12 @@ bot.action(/translate_([\w.]+)_(\d+)_(\d+)/, async (ctx) => {
   }
 });
 
-bot.action(/random_ayah/, async (ctx) => {
+bot.action(/^random_ayah/, async (ctx) => {
   await ctx.answerCbQuery();
   await sendRandomAyah(ctx);
 });
 
-bot.action(/main_menu/, async (ctx) => {
+bot.action(/^main_menu/, async (ctx) => {
   await ctx.answerCbQuery();
   try {
     await ctx.editMessageText(t(ctx, '🏠 Главное меню:', '🏠 Main menu:', '🏠 القائمة الرئيسية:'), kbd.mainMenu(lang(ctx)));
@@ -375,7 +375,7 @@ bot.action(/main_menu/, async (ctx) => {
   }
 });
 
-bot.action(/lang_(russian|english|arabic)/, async (ctx) => {
+bot.action(/^lang_(russian|english|arabic)/, async (ctx) => {
   const newLang = ctx.match[1];
   store.setLang(ctx.from.id, newLang);
   await ctx.answerCbQuery();
