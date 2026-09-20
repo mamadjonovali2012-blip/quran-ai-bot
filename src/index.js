@@ -815,7 +815,7 @@ const server = http.createServer(async (req, res) => {
     }
   } else if (req.url === '/') {
     res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
-    res.end('QuranAI Bot v3.0 — running');
+    res.end('QuranAI Bot v4.0 — running');
   } else {
     res.writeHead(404);
     res.end('Not found');
