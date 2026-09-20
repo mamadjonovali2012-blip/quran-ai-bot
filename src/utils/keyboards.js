@@ -77,9 +77,19 @@ function surahActions(surahId, lang) {
   const s = SURAHS.find((x) => x.id === surahId);
   if (!s) return inMenu(lang);
   return Markup.inlineKeyboard([
-    [Markup.button.callback(t(lang, '🔊 Слушать', '🔊 Listen', '🔊 استمع'), `audiosurah_${surahId}`),
+    [Markup.button.callback(t(lang, '🔊 Слушать суру', '🔊 Listen', '🔊 استمع'), `audiosurah_${surahId}`),
      Markup.button.callback(t(lang, '📖 Тафсир 1', '📖 Tafsir 1', '📖 تفسير 1'), `tafsir_s_${surahId}_1`)],
-    [backBtn(lang, `surahpage_0`)],
+    [Markup.button.callback(t(lang, '🎲 Случайный аят', '🎲 Random ayah', '🎲 آية عشوائية'), 'random_ayah'),
+     backBtn(lang, `surahpage_0`)],
+  ]);
+}
+
+function homeNav(lang) {
+  return Markup.inlineKeyboard([
+    [Markup.button.callback(t(lang, '📖 По сурам', '📖 By Surah', '📖 بالسور'), 'nav_surahs'),
+     Markup.button.callback(t(lang, '📖 По джузам', '📖 By Juz', '📖 بالأجزاء'), 'nav_juz')],
+    [Markup.button.callback(t(lang, '🎲 Случайный аят', '🎲 Random ayah', '🎲 آية عشوائية'), 'random_ayah'),
+     Markup.button.callback(t(lang, '📅 Аят дня', '📅 Ayah of day', '📅 آية اليوم'), 'daily_ayah')],
   ]);
 }
 
@@ -142,6 +152,6 @@ function reciterPickerSurah(surahId, lang) {
 }
 
 module.exports = {
-  mainMenu, inMenu, surahList, juzList, quranNav, surahActions,
+  mainMenu, inMenu, surahList, juzList, quranNav, homeNav, surahActions,
   ayahActions, translationMenu, reciterPicker, reciterPickerSurah, t,
 };

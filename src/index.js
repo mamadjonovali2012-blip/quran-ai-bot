@@ -37,13 +37,70 @@ bot.start(async (ctx) => {
 
 bot.help((ctx) => ctx.reply(
   t(ctx,
-    'Команды:\n/quran — Читать Коран\n/search <текст> — Поиск\n/random — Случайный аят\n/audio <сура> [аят] — Аудио\n/bookmarks — Закладки\n/language — Язык\n\nВ любом чате: @QuranAIBot <текст> для поиска',
-    'Commands:\n/quran — Read Quran\n/search <text> — Search\n/random — Random ayah\n/audio <surah> [ayah] — Audio\n/bookmarks — Bookmarks\n/language — Language\n\nAny chat: @QuranAIBot <text> for inline search',
-    'الأوامر:\n/quran — قراءة القرآن\n/search <نص> — بحث\n/random — آية عشوائية\n/audio <سورة> [آية] — صوت\n/bookmarks — العلامات\n/language — اللغة\n\nفي أي محادثة: @QuranAIBot <نص> للبحث')
+    '📖 Команды:\n/quran — Навигация по Корану\n/surah <N> — Сура по номеру\n/juz <N> — Джуз по номеру\n/ayah <S> <A> — Конкретный аят\n/search <текст> — Поиск\n/random — Случайный аят\n/today — Аят дня\n/subscribe — Подписка на аят дня\n/audio <сура> [аят] — Аудио\n/bookmarks — Закладки\n/language — Язык\n\n💬 В любом чате: @QuranAIBot <текст> — поиск',
+    '📖 Commands:\n/quran — Quran navigation\n/surah <N> — Surah by number\n/juz <N> — Juz by number\n/ayah <S> <A> — Specific ayah\n/search <text> — Search\n/random — Random ayah\n/today — Ayah of the day\n/subscribe — Daily ayah subscription\n/audio <surah> [ayah] — Audio\n/bookmarks — Bookmarks\n/language — Language\n\n💬 Any chat: @QuranAIBot <text> — search',
+    '📖 الأوامر:\n/quran — تصفح القرآن\n/surah <رقم> — سورة بالرقم\n/juz <رقم> — جزء بالرقم\n/ayah <س> <آ> — آية محددة\n/search <نص> — بحث\n/random — آية عشوائية\n/today — آية اليوم\n/subscribe — اشتراك يومي\n/audio <سورة> [آية] — صوت\n/bookmarks — العلامات\n/language — اللغة\n\n💬 في أي محادثة: @QuranAIBot <نص> — بحث')
 ));
 
 bot.command('quran', async (ctx) => {
   await ctx.reply(t(ctx, '📖 Навигация по Корану:', '📖 Quran navigation:', '📖 تصفح القرآن:'), kbd.quranNav(lang(ctx)));
+});
+
+bot.command('surah', async (ctx) => {
+  const args = ctx.message.text.replace(/^\/surah\s*/i, '').trim().split(/\s+/);
+  const surahId = parseInt(args[0], 10);
+  const s = h.findSurah(surahId);
+  if (!s) {
+    await ctx.reply(t(ctx, '📖 Отправьте: /surah <номер> (1-114)\nНапример: /surah 36', '📖 Send: /surah <number> (1-114)\nE.g. /surah 36', '📖 أرسل: /surah <رقم> (1-114)\nمثال: /surah 36'));
+    return;
+  }
+  await sendSurah(ctx, surahId);
+});
+
+bot.command('juz', async (ctx) => {
+  const args = ctx.message.text.replace(/^\/juz\s*/i, '').trim().split(/\s+/);
+  const juz = parseInt(args[0], 10);
+  if (!juz || juz < 1 || juz > 30) {
+    await ctx.reply(t(ctx, '📖 Отправьте: /juz <номер> (1-30)\nНапример: /juz 30', '📖 Send: /juz <number> (1-30)\nE.g. /juz 30', '📖 أرسل: /juz <رقم> (1-30)\nمثال: /juz 30'));
+    return;
+  }
+  await sendJuz(ctx, juz);
+});
+
+bot.command('ayah', async (ctx) => {
+  const args = ctx.message.text.replace(/^\/ayah\s*/i, '').trim().split(/[\s:]+/);
+  const surahId = parseInt(args[0], 10);
+  const ayahNumber = parseInt(args[1], 10);
+  const s = h.findSurah(surahId);
+  if (!s || !ayahNumber || ayahNumber < 1 || ayahNumber > s.ayats) {
+    await ctx.reply(t(ctx, '📖 Отправьте: /ayah <сура> <аят>\nНапример: /ayah 112 1', '📖 Send: /ayah <surah> <ayah>\nE.g. /ayah 112 1', '📖 أرسل: /ayah <سورة> <آية>\nمثال: /ayah 112 1'));
+    return;
+  }
+  await sendAyah(ctx, surahId, ayahNumber);
+});
+
+bot.command('today', async (ctx) => {
+  await ctx.reply(t(ctx, '📅 Загружаю аят дня...', '📅 Loading ayah of the day...', '📅 جارٍ تحميل آية اليوم...'));
+  await sendDailyAyah(ctx);
+});
+
+bot.command('subscribe', async (ctx) => {
+  const userId = ctx.from.id;
+  const isSub = store.getDailySub(userId);
+  store.setDailySub(userId, true);
+  await ctx.reply(t(ctx,
+    '✅ Вы подписаны на ежедневный аят дня! Каждый день в 06:00 МСК я пришлю вам аят с переводом. Отключить: /unsubscribe',
+    '✅ You are subscribed to the daily ayah! Every day at 06:00 MSK I will send you an ayah with translation. Disable: /unsubscribe',
+    '✅ تم الاشتراك في آية اليوم! سأرسل لك آية مع الترجمة كل يوم الساعة 06:00. للإلغاء: /unsubscribe'));
+});
+
+bot.command('unsubscribe', async (ctx) => {
+  const userId = ctx.from.id;
+  store.setDailySub(userId, false);
+  await ctx.reply(t(ctx,
+    '❌ Вы отписались от ежедневного аята.',
+    '❌ You unsubscribed from the daily ayah.',
+    '❌ تم إلغاء الاشتراك من آية اليوم.'));
 });
 
 bot.command('random', async (ctx) => sendRandomAyah(ctx));
@@ -366,6 +423,11 @@ bot.action(/^random_ayah/, async (ctx) => {
   await sendRandomAyah(ctx);
 });
 
+bot.action(/^daily_ayah/, async (ctx) => {
+  await ctx.answerCbQuery(t(ctx, '📅 Загружаю аят дня...', '📅 Loading...', '📅 جارٍ التحميل...'));
+  await sendDailyAyah(ctx);
+});
+
 bot.action(/^main_menu/, async (ctx) => {
   await ctx.answerCbQuery();
   try {
@@ -416,7 +478,8 @@ async function sendSurah(ctx, surahId, fromAyah, toAyah) {
 
     const info = `${h.surahTitle(s, lng)} — ${h.surahType(s, lng)}, ${s.ayats} ${t(ctx, 'аятов', 'verses', 'آيات')}`;
     const header = lng === 'arabic' ? `سورة ${s.nameArabic}` : `📖 ${h.surahName(s, lng)}`;
-    const msg = `${header}\n${info}\n\n${arabicText}\n\n${transText}${end < s.ayats ? `\n\n... ${t(ctx, 'продолжение следует', 'continued', 'يتبع')}` : ''}`;
+    const bismillah = surahId !== 1 && surahId !== 9 ? 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ\n\n' : '';
+    const msg = `${header}\n${info}\n\n${bismillah}${arabicText}\n\n${transText}${end < s.ayats ? `\n\n... ${t(ctx, 'продолжение следует', 'continued', 'يتبع')}` : ''}`;
 
     const parts = h.splitLongMessage(msg);
     for (let i = 0; i < parts.length; i++) {
@@ -484,6 +547,84 @@ async function sendTafsir(ctx, surahId, ayahNumber) {
 async function sendRandomAyah(ctx) {
   const { surahId, ayahNumber } = quranApi.getRandomAyah();
   await sendAyah(ctx, surahId, ayahNumber);
+}
+
+async function sendJuz(ctx, juz) {
+  const ju = JUIZ[juz - 1];
+  if (!ju) {
+    await ctx.reply(t(ctx, 'Джуз не найден', 'Juz not found', 'الجزء غير موجود'));
+    return;
+  }
+  const parts = ju.ayah.split(':');
+  const startSurah = parseInt(parts[0], 10);
+  const startAyah = parseInt(parts[1], 10);
+  const s = h.findSurah(startSurah);
+  const name = lang(ctx) === 'arabic' ? ju.name : ju.nameRu;
+  await ctx.reply(`${t(ctx, 'Джуз', 'Juz', 'الجزء')} ${juz} — ${name}`);
+  await sendSurah(ctx, startSurah, startAyah, Math.min(startAyah + 9, s.ayats));
+}
+
+async function sendDailyAyah(ctx) {
+  const lng = lang(ctx);
+  try {
+    const { surahId, ayahNumber } = quranApi.getRandomAyah();
+    const edition = LANGUAGES[lng]?.quranApi || 'ru.kuliev';
+    const [arabic, translation] = await Promise.all([
+      quranApi.getAyah(surahId, ayahNumber, 'ar.alfazy'),
+      quranApi.getAyah(surahId, ayahNumber, edition),
+    ]);
+    const s = h.findSurah(surahId);
+    const name = h.surahTitle(s, lng);
+    await ctx.reply(`📅 *${t(ctx, 'Аят дня', 'Ayah of the day', 'آية اليوم')}*\n\n${name} ${surahId}:${ayahNumber}\n\n${arabic.text}\n\n${translation.text}`, {
+      parse_mode: 'Markdown',
+      ...kbd.ayahActions(surahId, ayahNumber, ctx.from.id, store.isBookmarked(ctx.from.id, `${surahId}:${ayahNumber}`), lng),
+    });
+    store.markRead(ctx.from.id, `${surahId}:${ayahNumber}`);
+  } catch (err) {
+    console.error('sendDailyAyah error:', err);
+    await ctx.reply(t(ctx, 'Не удалось загрузить аят дня', 'Could not load ayah of the day', 'تعذر تحميل آية اليوم'));
+  }
+}
+
+async function broadcastDailyAyah() {
+  const subscribers = store.getAllDailySubscribers();
+  if (!subscribers.length) return;
+  for (const userId of subscribers) {
+    try {
+      const ctxLike = { from: { id: userId } };
+      const lng = store.getLang(userId) || 'russian';
+      const { surahId, ayahNumber } = quranApi.getRandomAyah();
+      const edition = LANGUAGES[lng]?.quranApi || 'ru.kuliev';
+      const [arabic, translation] = await Promise.all([
+        quranApi.getAyah(surahId, ayahNumber, 'ar.alfazy'),
+        quranApi.getAyah(surahId, ayahNumber, edition),
+      ]);
+      const s = h.findSurah(surahId);
+      const name = h.surahTitle(s, lng);
+      await bot.telegram.sendMessage(userId,
+        `📅 *${h.t(lng, 'Аят дня', 'Ayah of the day', 'آية اليوم')}*\n\n${name} ${surahId}:${ayahNumber}\n\n${arabic.text}\n\n${translation.text}`,
+        { parse_mode: 'Markdown' });
+    } catch (err) {
+      console.error(`broadcast to ${userId} failed:`, err.message);
+    }
+  }
+}
+
+function scheduleDailyBroadcast() {
+  const now = new Date();
+  const next = new Date(now);
+  next.setHours(6, 0, 0, 0);
+  if (next <= now) next.setDate(next.getDate() + 1);
+  const delay = next - now;
+  console.log(`Daily broadcast scheduled at 06:00 MSK (in ${Math.round(delay / 60000)} min)`);
+  setTimeout(async () => {
+    try {
+      await broadcastDailyAyah();
+    } catch (err) {
+      console.error('broadcast error:', err);
+    }
+    scheduleDailyBroadcast();
+  }, delay);
 }
 
 async function sendBookmarks(ctx) {
@@ -578,7 +719,7 @@ const server = http.createServer(async (req, res) => {
     }
   } else if (req.url === '/') {
     res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
-    res.end('QuranAI Bot v2.0 — running');
+    res.end('QuranAI Bot v3.0 — running');
   } else {
     res.writeHead(404);
     res.end('Not found');
@@ -598,7 +739,24 @@ async function start() {
       bot.launch({ dropPendingUpdates: true });
       console.log('Bot started (polling mode)');
     }
+
+    scheduleDailyBroadcast();
+    startSelfPing();
   });
+}
+
+function startSelfPing() {
+  if (!config.selfUrl) return;
+  const interval = setInterval(async () => {
+    try {
+      const res = await fetch(config.selfUrl, { signal: AbortSignal.timeout(15000) });
+      console.log(`Self-ping: ${res.status}`);
+    } catch (err) {
+      console.log('Self-ping failed:', err.message);
+    }
+  }, 10 * 60 * 1000);
+  console.log(`Self-ping to ${config.selfUrl} every 10 min`);
+  process.once('SIGTERM', () => clearInterval(interval));
 }
 
 start().catch((err) => {

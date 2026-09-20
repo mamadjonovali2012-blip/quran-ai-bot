@@ -14,7 +14,7 @@ function userFile(userId) {
 }
 
 function defaultData() {
-  return { lang: 'russian', bookmarks: [], history: [], lastRead: null, settings: {} };
+  return { lang: 'russian', bookmarks: [], history: [], lastRead: null, dailySub: false, settings: {} };
 }
 
 function getData(userId) {
@@ -86,7 +86,30 @@ function getLastRead(userId) {
   return getData(userId).lastRead || null;
 }
 
+function setDailySub(userId, enabled) {
+  const d = getData(userId);
+  d.dailySub = !!enabled;
+  save(userId, d);
+}
+
+function getDailySub(userId) {
+  const d = getData(userId);
+  return !!d.dailySub;
+}
+
+function getAllDailySubscribers() {
+  ensureDir();
+  const files = fs.readdirSync(DATA_DIR).filter((f) => f.startsWith('user_') && f.endsWith('.json'));
+  const subs = [];
+  for (const f of files) {
+    const id = parseInt(f.replace('user_', '').replace('.json', ''), 10);
+    if (Number.isFinite(id) && getDailySub(id)) subs.push(id);
+  }
+  return subs;
+}
+
 module.exports = {
   getLang, setLang, addBookmark, removeBookmark, isBookmarked,
   getBookmarks, markRead, getHistory, getLastRead, getData, save,
+  setDailySub, getDailySub, getAllDailySubscribers,
 };
