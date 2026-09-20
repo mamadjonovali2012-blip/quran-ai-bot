@@ -84,13 +84,18 @@ function surahActions(surahId, lang) {
   ]);
 }
 
-function homeNav(lang) {
-  return Markup.inlineKeyboard([
-    [Markup.button.callback(t(lang, '📖 По сурам', '📖 By Surah', '📖 بالسور'), 'nav_surahs'),
-     Markup.button.callback(t(lang, '📖 По джузам', '📖 By Juz', '📖 بالأجزاء'), 'nav_juz')],
-    [Markup.button.callback(t(lang, '🎲 Случайный аят', '🎲 Random ayah', '🎲 آية عشوائية'), 'random_ayah'),
-     Markup.button.callback(t(lang, '📅 Аят дня', '📅 Ayah of day', '📅 آية اليوم'), 'daily_ayah')],
-  ]);
+function homeNav(lang, hasLastRead = false) {
+  const rows = [];
+  if (hasLastRead) {
+    rows.push([Markup.button.callback(t(lang, '▶️ Продолжить чтение', '▶️ Continue reading', '▶️ متابعة القراءة'), 'continue_reading')]);
+  }
+  rows.push([Markup.button.callback(t(lang, '📖 По сурам', '📖 By Surah', '📖 بالسور'), 'nav_surahs'),
+             Markup.button.callback(t(lang, '📖 По джузам', '📖 By Juz', '📖 بالأجزاء'), 'nav_juz')]);
+  rows.push([Markup.button.callback(t(lang, '🎲 Случайный аят', '🎲 Random ayah', '🎲 آية عشوائية'), 'random_ayah'),
+             Markup.button.callback(t(lang, '📅 Аят дня', '📅 Ayah of day', '📅 آية اليوم'), 'daily_ayah')]);
+  rows.push([Markup.button.callback(t(lang, '📑 Закладки', '📑 Bookmarks', '📑 العلامات'), 'bookmarks_menu'),
+             Markup.button.callback(t(lang, '🌐 Перевод', '🌐 Edition', '🌐 الترجمة'), 'edition_menu')]);
+  return Markup.inlineKeyboard(rows);
 }
 
 function ayahActions(surahId, ayahNumber, userId, isBookmarked, lang) {
@@ -110,6 +115,22 @@ function ayahActions(surahId, ayahNumber, userId, isBookmarked, lang) {
     Markup.button.callback(t(lang, '▶️', '▶️', '▶️'), `next_ayah_${surahId}_${ayahNumber}`),
   ];
   return Markup.inlineKeyboard([row1, row2, row3]);
+}
+
+function editionMenu(currentEdition, lang) {
+  const EDITIONS = [
+    { id: 'ru.kuliev', ru: '🇷🇺 Кулиев', en: '🇷🇺 Kuliev', ar: '🇷🇺 كوليايف' },
+    { id: 'en.sahih', ru: '🇬🇧 Sahih Intl.', en: '🇬🇧 Sahih Intl.', ar: '🇬🇧 صحيح' },
+    { id: 'ar.alfazy', ru: '🇸🇦 Арабский', en: '🇸🇦 Arabic', ar: '🇸🇦 العربية' },
+    { id: 'en.pickthall', ru: '🇬🇧 Pickthall', en: '🇬🇧 Pickthall', ar: '🇬🇧 بيكثال' },
+  ];
+  const rows = EDITIONS.map((e) => {
+    const label = e[lang] || e.ru;
+    const mark = e.id === currentEdition ? ' ✅' : '';
+    return [Markup.button.callback(`${label}${mark}`, `edition_${e.id}`)];
+  });
+  rows.push([backBtn(lang, 'main_menu')]);
+  return Markup.inlineKeyboard(rows);
 }
 
 function translationMenu(surahId, ayahNumber, lang) {
@@ -153,5 +174,5 @@ function reciterPickerSurah(surahId, lang) {
 
 module.exports = {
   mainMenu, inMenu, surahList, juzList, quranNav, homeNav, surahActions,
-  ayahActions, translationMenu, reciterPicker, reciterPickerSurah, t,
+  ayahActions, translationMenu, reciterPicker, reciterPickerSurah, editionMenu, t,
 };

@@ -14,7 +14,7 @@ function userFile(userId) {
 }
 
 function defaultData() {
-  return { lang: 'russian', bookmarks: [], history: [], lastRead: null, dailySub: false, settings: {} };
+  return { lang: 'russian', edition: 'ru.kuliev', bookmarks: [], history: [], lastRead: null, dailySub: false, settings: {} };
 }
 
 function getData(userId) {
@@ -108,8 +108,20 @@ function getAllDailySubscribers() {
   return subs;
 }
 
+function getEdition(userId) {
+  const d = getData(userId);
+  return d.edition || 'ru.kuliev';
+}
+
+function setEdition(userId, edition) {
+  const d = getData(userId);
+  d.edition = edition;
+  save(userId, d);
+}
+
 module.exports = {
   getLang, setLang, addBookmark, removeBookmark, isBookmarked,
   getBookmarks, markRead, getHistory, getLastRead, getData, save,
   setDailySub, getDailySub, getAllDailySubscribers,
+  getEdition, setEdition,
 };
