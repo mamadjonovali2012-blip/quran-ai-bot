@@ -151,21 +151,23 @@ function translationMenu(surahId, ayahNumber, lang) {
 
 function reciterPicker(surahId, ayahNumber, lang) {
   const { RECITERS } = require('../services/audioService');
-  const rows = RECITERS.map((r) => {
+  const rows = RECITERS.map((r, idx) => {
     const name = r.name[lang] || r.name.russian;
-    return [Markup.button.callback(name, `play_${r.id}_${surahId}_${ayahNumber}`)];
+    return [Markup.button.callback(`🔊 ${name}`, `play_${idx}_${surahId}_${ayahNumber}`)];
   });
   rows.push([backBtn(lang, `ayah_${surahId}_${ayahNumber}`)]);
   return Markup.inlineKeyboard(rows);
 }
 
 function reciterPickerSurah(surahId, lang) {
-  const { RECITERS } = require('../services/audioService');
+  const { surahCapableReciters, RECITERS } = require('../services/audioService');
+  const capable = surahCapableReciters().length ? surahCapableReciters() : RECITERS;
+  const idxOf = (r) => RECITERS.indexOf(r);
   const rows = [];
-  for (let i = 0; i < RECITERS.length; i += 2) {
+  for (let i = 0; i < capable.length; i += 2) {
     const row = [];
-    row.push(Markup.button.callback(RECITERS[i].name[lang] || RECITERS[i].name.russian, `playsurah_${RECITERS[i].id}_${surahId}`));
-    if (RECITERS[i + 1]) row.push(Markup.button.callback(RECITERS[i + 1].name[lang] || RECITERS[i + 1].name.russian, `playsurah_${RECITERS[i + 1].id}_${surahId}`));
+    row.push(Markup.button.callback(`🔊 ${capable[i].name[lang] || capable[i].name.russian}`, `playsurah_${idxOf(capable[i])}_${surahId}`));
+    if (capable[i + 1]) row.push(Markup.button.callback(`🔊 ${capable[i + 1].name[lang] || capable[i + 1].name.russian}`, `playsurah_${idxOf(capable[i + 1])}_${surahId}`));
     rows.push(row);
   }
   rows.push([backBtn(lang, `surah_${surahId}`)]);

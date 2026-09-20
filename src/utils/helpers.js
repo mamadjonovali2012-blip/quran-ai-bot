@@ -50,4 +50,20 @@ function parseRef(ref) {
   return { surahId, ayahNumber };
 }
 
-module.exports = { findSurah, surahName, surahTitle, surahType, formatAyahListItem, splitLongMessage, parseRef, t };
+const AYAH_OFFSETS = (() => {
+  const offsets = [0];
+  let total = 0;
+  for (const s of SURAHS) {
+    total += s.ayats;
+    offsets.push(total);
+  }
+  return offsets; 
+})();
+
+function globalAyahNumber(surahId, ayahNumber) {
+  const idx = Number(surahId);
+  if (idx < 1 || idx > SURAHS.length) return null;
+  return AYAH_OFFSETS[idx - 1] + Number(ayahNumber);
+}
+
+module.exports = { findSurah, surahName, surahTitle, surahType, formatAyahListItem, splitLongMessage, parseRef, t, globalAyahNumber };

@@ -9,13 +9,13 @@ const LANGUAGES = {
     code: 'english',
     label: 'English',
     quranApi: 'en.sahih',
-    tafsir: 'en.al-tafsir',
+    tafsir: 'en.asad',
   },
   arabic: {
     code: 'arabic',
     label: 'العربية',
     quranApi: 'ar.alfazy',
-    tafsir: 'ru.muntahab',
+    tafsir: 'ar.muyassar',
   },
 };
 

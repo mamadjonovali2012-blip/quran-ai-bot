@@ -35,7 +35,11 @@ function searchQuran(query, language) {
 }
 
 function getTafsir(edition, surahId, ayahNumber) {
-  return fetchJson(`${BASE}/tafsir/${edition}/${surahId}:${ayahNumber}`);
+  return fetchJson(`${BASE}/ayah/${surahId}:${ayahNumber}/${edition}`);
+}
+
+function getAyahAudio(surahId, ayahNumber, reciterEdition) {
+  return fetchJson(`${BASE}/ayah/${surahId}:${ayahNumber}/${reciterEdition}`);
 }
 
 function getRandomAyah() {
@@ -46,4 +50,4 @@ function getRandomAyah() {
   return { surahId, ayahNumber };
 }
 
-module.exports = { getSurah, getAyah, getPage, searchQuran, getTafsir, getRandomAyah };
+module.exports = { getSurah, getAyah, getPage, searchQuran, getTafsir, getAyahAudio, getRandomAyah };

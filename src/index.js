@@ -187,9 +187,7 @@ bot.command('audio', async (ctx) => {
   if (args[1]) {
     const ayahNumber = parseInt(args[1]);
     if (ayahNumber < 1 || ayahNumber > s.ayats) { await ctx.reply(t(ctx, 'Неверный номер аята', 'Invalid ayah number', 'رقم آية غير صحيح')); return; }
-    try {
-      await ctx.replyWithAudio(audioService.ayahUrl(128, surahId, ayahNumber), { caption: `${h.surahName(s, lang(ctx))} ${surahId}:${ayahNumber}` });
-    } catch { await ctx.reply(t(ctx, 'Не удалось воспроизвести аудио', 'Cannot play audio', 'تعذر تشغيل الصوت')); }
+    await playAyahAudio(ctx, 0, surahId, ayahNumber);
   } else {
     await ctx.reply(t(ctx, `Выберите чтеца для ${h.surahName(s, lang(ctx))}:`, `Choose a reciter for ${h.surahName(s, lang(ctx))}:`, `اختر قارئاً لـ ${h.surahName(s, lang(ctx))}:`), kbd.reciterPickerSurah(surahId, lang(ctx)));
   }
@@ -386,13 +384,7 @@ bot.action(/^audioayah_(\d+)_(\d+)/, async (ctx) => {
   await ctx.answerCbQuery();
   const s = h.findSurah(surahId);
   if (!s) return;
-  try {
-    await ctx.replyWithAudio(audioService.ayahUrl(128, surahId, ayahNumber), {
-      caption: `${h.surahName(s, lang(ctx))} ${surahId}:${ayahNumber}`,
-    });
-  } catch {
-    await ctx.reply(t(ctx, 'Не удалось воспроизвести аудио', 'Cannot play audio', 'تعذر تشغيل الصوت'));
-  }
+  await playAyahAudio(ctx, 0, surahId, ayahNumber);
 });
 
 bot.action(/^audiosurah_(\d+)/, async (ctx) => {
@@ -404,36 +396,22 @@ bot.action(/^audiosurah_(\d+)/, async (ctx) => {
 });
 
 bot.action(/^play_(\d+)_(\d+)_(\d+)/, async (ctx) => {
-  const reciterId = parseInt(ctx.match[1]);
+  const reciterIdx = parseInt(ctx.match[1]);
   const surahId = parseInt(ctx.match[2]);
   const ayahNumber = parseInt(ctx.match[3]);
   const s = h.findSurah(surahId);
   await ctx.answerCbQuery();
   if (!s) return;
-  try {
-    await ctx.replyWithAudio(audioService.ayahUrl(reciterId, surahId, ayahNumber), {
-      caption: `${h.surahName(s, lang(ctx))} ${surahId}:${ayahNumber}`,
-    });
-  } catch {
-    await ctx.reply(t(ctx, 'Не удалось воспроизвести аудио', 'Cannot play audio', 'تعذر تشغيل الصوت'));
-  }
+  await playAyahAudio(ctx, reciterIdx, surahId, ayahNumber);
 });
 
 bot.action(/^playsurah_(\d+)_(\d+)/, async (ctx) => {
-  const reciterId = parseInt(ctx.match[1]);
+  const reciterIdx = parseInt(ctx.match[1]);
   const surahId = parseInt(ctx.match[2]);
   const s = h.findSurah(surahId);
   await ctx.answerCbQuery();
   if (!s) return;
-  const reciter = audioService.RECITERS.find((r) => r.id === reciterId);
-  const reciterName = reciter ? (reciter.name[lang(ctx)] || reciter.name.russian) : '';
-  try {
-    await ctx.replyWithAudio(audioService.surahUrl(reciterId, surahId), {
-      caption: `${h.surahName(s, lang(ctx))} — ${reciterName}`,
-    });
-  } catch {
-    await ctx.reply(t(ctx, 'Не удалось воспроизвести аудио', 'Cannot play audio', 'تعذر تشغيل الصوت'));
-  }
+  await playSurahAudio(ctx, reciterIdx, surahId);
 });
 
 bot.action(/^bookmark_(\d+)_(\d+)/, async (ctx) => {
@@ -628,15 +606,56 @@ async function sendTafsir(ctx, surahId, ayahNumber) {
   const s = h.findSurah(surahId);
   if (!s) return;
 
+  const tafsirMap = {
+    russian: 'ru.muntahab',
+    english: 'en.asad',
+    arabic: 'ar.muyassar',
+  };
+  const edition = tafsirMap[lng] || 'ru.muntahab';
   try {
-    const edition = LANGUAGES[lng]?.tafsir || 'ru.muntahab';
-    const tafsir = await quranApi.getTafsir(edition, surahId, ayahNumber);
-    const cleaned = tafsir.text.replace(/<[^>]+>/g, '').substring(0, 3000);
-    const text = `📖 *${h.surahTitle(s, lng)} ${surahId}:${ayahNumber}*\n\n${cleaned}`;
-    await ctx.reply(text, { parse_mode: 'Markdown' });
+    const res = await quranApi.getTafsir(edition, surahId, ayahNumber);
+    let text = res.text || '';
+    text = text.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim().substring(0, 3000);
+    const sourceName = edition === 'ru.muntahab' ? 'Аль-Мунтахаб' : edition === 'en.asad' ? 'Asad' : 'аль-Муяссар';
+    await ctx.reply(`*📖 ${t(ctx, 'Тафсир', 'Tafsir', 'التفسير')} (${sourceName}): ${h.surahTitle(s, lng)} ${surahId}:${ayahNumber}*\n\n${text}`, { parse_mode: 'Markdown' });
   } catch (err) {
     console.error('sendTafsir error:', err);
     await ctx.reply(t(ctx, 'Ошибка загрузки тафсира', 'Error loading tafsir', 'خطأ في تحميل التفسير'));
+  }
+}
+
+async function playAyahAudio(ctx, reciterIdx, surahId, ayahNumber) {
+  const s = h.findSurah(surahId);
+  if (!s) return;
+  const reciter = audioService.RECITERS[reciterIdx] || audioService.RECITERS[0];
+  try {
+    const globalNum = h.globalAyahNumber(surahId, ayahNumber);
+    const url = audioService.ayahCdnUrl(reciter, globalNum);
+    if (!url) throw new Error('no url');
+    const reciterName = reciter.name[lang(ctx)] || reciter.name.russian;
+    await ctx.replyWithAudio(url, {
+      caption: `${h.surahName(s, lang(ctx))} ${surahId}:${ayahNumber} — ${reciterName}`,
+    });
+  } catch (err) {
+    console.error('playAyahAudio error:', err.message);
+    await ctx.reply(t(ctx, 'Не удалось воспроизвести аудио', 'Cannot play audio', 'تعذر تشغيل الصوت'));
+  }
+}
+
+async function playSurahAudio(ctx, reciterIdx, surahId) {
+  const s = h.findSurah(surahId);
+  if (!s) return;
+  const reciter = audioService.RECITERS[reciterIdx] || audioService.RECITERS[0];
+  const reciterName = reciter.name[lang(ctx)] || reciter.name.russian;
+  try {
+    const url = audioService.surahAudioUrl(reciter, surahId);
+    if (!url) throw new Error('no url');
+    await ctx.replyWithAudio(url, {
+      caption: `${h.surahName(s, lang(ctx))} — ${reciterName}`,
+    });
+  } catch (err) {
+    console.error('playSurahAudio error:', err.message);
+    await ctx.reply(t(ctx, 'Не удалось воспроизвести аудио', 'Cannot play audio', 'تعذر تشغيل الصوت'));
   }
 }
 
